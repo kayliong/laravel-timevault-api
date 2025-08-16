@@ -26,6 +26,6 @@ $router->group(['prefix'=>'api/v1/'], function () use($router) {
         return "Hello Postman!";
     });
     $router->post('/object', 'Objects\ObjectController@createObject');
-    $router->get('/object/{key}', 'Objects\ObjectController@getObjectByKey');
     $router->get('/object/get_all_records', 'Objects\ObjectController@getAllRecords');
+    $router->get('/object/{key}', 'Objects\ObjectController@getObjectByKey');
 });
