@@ -58,39 +58,4 @@ class ObjectModel extends Model
     'key',
     'value',
   ];
-
-    /**
-     * @param $addressId
-     * @return mixed
-     */
-  public function getAddressInformationById($addressId)
-  {
-      return $this->where('id', $addressId)->first();
-  }
-
-  /**
-   * @param $addressIds
-   * @return mixed
-   */
-
-  public function getAddressInformationByIds($addressIds)
-  {
-      return $this->whereIn('id', $addressIds)->get();
-  }
-
-  /**
-   * @param $filterDate
-   * @param $limit
-   * @return mixed
-   */
-  public function getUnmaskedAddress($filterDate = null, $limit = 100)
-  {
-      $result = $this->where('masked', 0);
-                  
-      if (!empty($filterDate)) {
-          $result = $result->where('created_at', '<', $filterDate);
-      }
-
-      return $result->limit($limit)->get();
-  }
 }
