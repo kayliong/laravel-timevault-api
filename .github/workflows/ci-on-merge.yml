@@ -16,8 +16,10 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: testing
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: homestead
+          MYSQL_USER: homestead
+          MYSQL_PASSWORD: secret
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -68,9 +70,9 @@ jobs:
           echo "DB_CONNECTION=mysql" >> .env
           echo "DB_HOST=127.0.0.1" >> .env
           echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=testing" >> .env
-          echo "DB_USERNAME=root" >> .env
-          echo "DB_PASSWORD=password" >> .env
+          echo "DB_DATABASE=homestead" >> .env
+          echo "DB_USERNAME=homestead" >> .env
+          echo "DB_PASSWORD=secret" >> .env
         fi
 
     # Generate application key (if your Lumen app uses one)
