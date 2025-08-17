@@ -72,13 +72,16 @@ $app->configure('app');
 |
 */
 
-// $app->middleware([
-//     App\Http\Middleware\ExampleMiddleware::class
-// ]);
+$app->middleware([
+    App\Http\Middleware\VerifyApiRequest::class
+]);
 
-// $app->routeMiddleware([
-//     'auth' => App\Http\Middleware\Authenticate::class,
-// ]);
+$app->routeMiddleware([
+    // 'auth' => App\Http\Middleware\Authenticate::class,
+    'verifyApiRequest' => \App\Http\Middleware\VerifyApiRequest::class,
+    'sanitizeResponse' => \App\Http\Middleware\SanitizeResponse::class,
+    'rateLimit' => \App\Http\Middleware\RateLimit::class,
+]);
 
 /*
 |--------------------------------------------------------------------------

@@ -21,7 +21,7 @@ $router->get('/ping', function () {
     return "Hello World!";
 });
 
-$router->group(['prefix'=>'api/v1/'], function () use($router) {
+$router->group(['prefix'=>'api/v1/', 'middleware' => ['verifyApiRequest','rateLimit']], function () use($router) {
     $router->post('/', function () {
         return "Hello Postman!";
     });

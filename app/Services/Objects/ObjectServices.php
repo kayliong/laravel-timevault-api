@@ -3,6 +3,7 @@
 namespace App\Services\Objects;
 
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Models\Objects\ObjectModel; // use Object model
 
 class ObjectServices
@@ -43,8 +44,8 @@ class ObjectServices
                     'id' => $timeVaultObject->id,
                     'key' => $timeVaultObject->key,
                     'value' => $timeVaultObject->value,
-                    'created_at' => $timeVaultObject->created_at,
-                    'updated_at' => $timeVaultObject->updated_at
+                    'created_at' => $timeVaultObject->created_at->format('Y-m-d H:i:s'),
+                    'created_at_timestamp' => $timeVaultObject->updated_at->timestamp
                 ];
             }
             DB::commit();
@@ -233,12 +234,15 @@ class ObjectServices
                     $value = $record->value;
                 }
 
+                $createdAt = Carbon::parse($record->created_at);
+                $updatedAt = Carbon::parse($record->updated_at);
+
                 $formattedRecords[] = [
                     'id' => $record->id,
                     'key' => $record->key,
                     'value' => $value,
-                    'created_at' => $record->created_at,
-                    'updated_at' => $record->updated_at
+                    'created_at' => $createdAt->format('Y-m-d H:i:s'),
+                    'created_at_timestamp' => $createdAt->timestamp
                 ];
             }
 
