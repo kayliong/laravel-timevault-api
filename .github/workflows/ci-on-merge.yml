@@ -1,0 +1,100 @@
+name: CI Tests
+
+# Trigger the workflow on push to master and pull requests targeting master
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      # Add database service if your tests require it
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: homestead
+          MYSQL_USER: homestead
+          MYSQL_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    # Checkout the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Setup PHP 8.4
+    - name: Setup PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: mbstring, xml, ctype, json, curl, zip, pdo, pdo_mysql
+        coverage: xdebug
+        tools: composer:v2
+
+    # Validate composer.json and composer.lock
+    - name: Validate composer files
+      run: composer validate
+
+    # Cache Composer dependencies
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+
+    # Install Composer dependencies
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
+
+    # Copy environment file for testing
+    - name: Copy .env.testing
+      run: |
+        if [ -f .env.testing ]; then
+          cp .env.testing .env
+        elif [ -f .env.example ]; then
+          cp .env.example .env
+        else
+          echo "Creating basic .env file"
+          echo "APP_ENV=testing" > .env
+          echo "APP_DEBUG=true" >> .env
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=homestead" >> .env
+          echo "DB_USERNAME=homestead" >> .env
+          echo "DB_PASSWORD=secret" >> .env
+        fi
+
+    # Generate application key (if your Lumen app uses one)
+    - name: Generate application key
+      run: |
+        if grep -q "php artisan key:generate" composer.json; then
+          php artisan key:generate
+        fi
+
+    # Run database migrations if they exist
+    - name: Run migrations
+      run: |
+        if [ -d "database/migrations" ]; then
+          php artisan migrate --force
+        fi
+
+    # Run PHPUnit tests
+    - name: Run PHPUnit tests
+      run: |
+        if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
+          ./vendor/bin/phpunit --testdox
+        else
+          echo "No PHPUnit configuration found, running tests directly"
+          ./vendor/bin/phpunit tests/
+        fi
