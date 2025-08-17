@@ -54,6 +54,39 @@ jobs:
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
+    # Copy environment file for testing
+    - name: Copy .env.testing
+      run: |
+        if [ -f .env.testing ]; then
+          cp .env.testing .env
+        elif [ -f .env.example ]; then
+          cp .env.example .env
+        else
+          echo "Creating basic .env file"
+          echo "APP_ENV=testing" > .env
+          echo "APP_DEBUG=true" >> .env
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=testing" >> .env
+          echo "DB_USERNAME=root" >> .env
+          echo "DB_PASSWORD=password" >> .env
+        fi
+
+    # Generate application key (if your Lumen app uses one)
+    - name: Generate application key
+      run: |
+        if grep -q "php artisan key:generate" composer.json; then
+          php artisan key:generate
+        fi
+
+    # Run database migrations if they exist
+    - name: Run migrations
+      run: |
+        if [ -d "database/migrations" ]; then
+          php artisan migrate --force
+        fi
+
     # Run PHPUnit tests
     - name: Run PHPUnit tests
       run: |
