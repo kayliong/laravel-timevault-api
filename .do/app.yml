@@ -8,9 +8,7 @@ services:
   environment_slug: php
   http_port: 8080
   health_check:
-    http_path: /
-  buildpacks:
-  - https://github.com/heroku/heroku-buildpack-php
+    http_path: /ping
   envs:
   - key: APP_ENV
     value: production
