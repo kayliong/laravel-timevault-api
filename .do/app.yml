@@ -7,6 +7,9 @@ services:
     branch: master
   run_command: php -S 0.0.0.0:8080 -t public
   environment_slug: php
+  http_port: 8080
+  health_check:
+    http_path: /ping
   envs:
   - key: APP_ENV
     value: production
