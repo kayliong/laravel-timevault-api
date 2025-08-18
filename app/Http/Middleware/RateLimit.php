@@ -6,17 +6,25 @@ use Closure;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 use Carbon\Carbon;
+use App\Models\ConfigModel;
 
 class RateLimit
 {
-    protected $maxAttempts = 60;   // requests
-    protected $decayMinutes = 1;   // window size
+    protected $maxAttempts = 60;   // max requests per minute
+    protected $resetWindow = 1;   // window size for reset the throttle
+
+    public function __construct()
+    {
+        // load rate limit settings from database
+        $this->maxAttempts = ConfigModel::getValue('rate_limit', 'max_attempt', $this->maxAttempts);
+        $this->resetWindow = ConfigModel::getValue('rate_limit', 'reset_window', $this->resetWindow);
+    }
 
     public function handle($request, Closure $next)
     {
         $ip  = $request->ip();
         $key = 'rate_limit:' . $ip;
-        $ttlSeconds = $this->decayMinutes * 60;
+        $ttlSeconds = $this->resetWindow * 60;
 
         $attempts = Cache::get($key, 0);
 
