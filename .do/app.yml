@@ -1,0 +1,12 @@
+name: laravel-timevault-api
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: kayliong/laravel-timevault-api
+    branch: master
+  run_command: php -S 0.0.0.0:8080 -t public
+  environment_slug: php
+  envs:
+  - key: APP_ENV
+    value: production
