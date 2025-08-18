@@ -10,6 +10,12 @@ services:
   http_port: 8080
   health_check:
     http_path: /ping
+  buildpacks:
+  - https://github.com/heroku/heroku-buildpack-php
   envs:
   - key: APP_ENV
     value: production
+  - key: APP_DEBUG
+    value: "true"
+  - key: APP_KEY
+    value: base64:Oqwx6V6t3vC5DEADAaaxcV4I3IhXHP4z
