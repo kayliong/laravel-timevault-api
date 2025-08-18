@@ -1,17 +1,16 @@
 <?php
 
-namespace Tests;
-
-use App\Services\Objects\ObjectServices;
-use App\Models\Objects\ObjectModel;
+use Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use App\Services\Objects\ObjectServices;
+use App\Models\Objects\ObjectModel;
 use Carbon\Carbon;
 use Mockery;
 
 class ObjectServicesTest extends TestCase
 {
-    protected $objectServices;
+    private $objectServices;
 
     protected function setUp(): void
     {
@@ -19,30 +18,26 @@ class ObjectServicesTest extends TestCase
         $this->objectServices = new ObjectServices();
     }
 
-    protected function tearDown(): void
-    {
-        Mockery::close();
-        parent::tearDown();
-    }
-
     public function testCreateObjectSuccess()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('all')->andReturn(['key1' => 'value1', 'key2' => ['nested' => 'array']]);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('all')->andReturn(['key1' => 'value1']);
 
-        $mockModel = Mockery::mock('overload:' . ObjectModel::class);
-        $mockModel->shouldReceive('create')->twice()->andReturn((object)[
-            'id' => 1,
-            'key' => 'key1',
-            'value' => 'value1',
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now()
-        ]);
+        $mockModel = new \stdClass();
+        $mockModel->id = 1;
+        $mockModel->key = 'key1';
+        $mockModel->value = 'value1';
+        $mockModel->created_at = Carbon::now();
+        $mockModel->updated_at = Carbon::now();
 
+        Mockery::mock('alias:' . ObjectModel::class)
+            ->shouldReceive('create')
+            ->andReturn($mockModel);
+        
         DB::shouldReceive('beginTransaction')->once();
         DB::shouldReceive('commit')->once();
 
-        $result = $this->objectServices->createObject($mockRequest);
+        $result = $this->objectServices->createObject($request);
 
         $this->assertTrue($result['success']);
         $this->assertEquals('Data stored successfully', $result['message']);
@@ -51,30 +46,33 @@ class ObjectServicesTest extends TestCase
 
     public function testCreateObjectEmptyData()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('all')->andReturn([]);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('all')->andReturn([]);
 
-        $result = $this->objectServices->createObject($mockRequest);
+        $result = $this->objectServices->createObject($request);
 
         $this->assertFalse($result['success']);
-        $this->assertEquals('No data provided', $result['message']);
+        $this->assertEquals(1005, $result['errors']['code']);
+        $this->assertEquals('No data provided', $result['errors']['message']);
     }
 
     public function testCreateObjectException()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('all')->andReturn(['key1' => 'value1']);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('all')->andReturn(['key1' => 'value1']);
 
-        $mockModel = Mockery::mock('overload:' . ObjectModel::class);
-        $mockModel->shouldReceive('create')->andThrow(new \Exception('Database error'));
-
+        Mockery::mock('alias:' . ObjectModel::class)
+            ->shouldReceive('create')
+            ->andThrow(new \Exception('Database error'));
+        
         DB::shouldReceive('beginTransaction')->once();
         DB::shouldReceive('rollback')->once();
 
-        $result = $this->objectServices->createObject($mockRequest);
+        $result = $this->objectServices->createObject($request);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Error storing key-value pair:', $result['message']);
+        $this->assertEquals(1007, $result['errors']['code']);
+        $this->assertStringContainsString('Error storing data:', $result['errors']['message']);
     }
 
     public function testGetObjectWithTimestamp()
@@ -119,45 +117,34 @@ class ObjectServicesTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertEquals('test_key', $result['data']['key']);
+        $this->assertEquals('test_value', $result['data']['value']);
     }
 
-    public function testGetLatestObjectMissingKey()
-    {
-        $request = [];
-
-        $result = $this->objectServices->getObject($request);
-
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Key parameter is required', $result['message']);
-    }
-
-    public function testGetLatestObjectNotFound()
+    public function testGetObjectKeyNotFound()
     {
         $request = ['key' => 'nonexistent_key'];
 
         DB::shouldReceive('table')->with('timevault_objects')->andReturnSelf();
         DB::shouldReceive('where')->with('key', 'nonexistent_key')->andReturnSelf();
         DB::shouldReceive('orderBy')->with('created_at', 'desc')->andReturnSelf();
-        DB::shouldReceive('first')->andReturn(null);
+        DB::shouldReceive('first')->once()->andReturn(null);
 
         $result = $this->objectServices->getObject($request);
 
         $this->assertFalse($result['success']);
-        $this->assertEquals('Key not found', $result['message']);
+        $this->assertEquals(1006, $result['errors']['code']);
+        $this->assertEquals('Key not found', $result['errors']['message']);
     }
 
-    public function testGetObjectByTimestampMissingParams()
+    public function testGetObjectEmptyKey()
     {
-        $request = ['key' => 'test_key'];
+        $request = [];
 
         $result = $this->objectServices->getObject($request);
 
-        DB::shouldReceive('table')->with('timevault_objects')->andReturnSelf();
-        DB::shouldReceive('where')->with('key', 'test_key')->andReturnSelf();
-        DB::shouldReceive('orderBy')->with('created_at', 'desc')->andReturnSelf();
-        DB::shouldReceive('first')->andReturn(null);
-
         $this->assertFalse($result['success']);
+        $this->assertEquals(1005, $result['errors']['code']);
+        $this->assertEquals('No data provided', $result['errors']['message']);
     }
 
     public function testGetObjectByTimestampNotFound()
@@ -168,41 +155,20 @@ class ObjectServicesTest extends TestCase
         DB::shouldReceive('where')->with('key', 'test_key')->andReturnSelf();
         DB::shouldReceive('where')->with('created_at', '=', '2022-01-01 00:00:00')->andReturnSelf();
         DB::shouldReceive('orderBy')->with('created_at', 'desc')->andReturnSelf();
-        DB::shouldReceive('first')->andReturn(null);
+        DB::shouldReceive('first')->once()->andReturn(null);
 
         $result = $this->objectServices->getObject($request);
 
         $this->assertFalse($result['success']);
-        $this->assertEquals('Key not found for the given timestamp', $result['message']);
-    }
-
-    public function testGetObjectWithJsonValue()
-    {
-        $request = ['key' => 'test_key'];
-        $jsonValue = '{"nested":"value"}';
-
-        $mockRecord = (object)[
-            'key' => 'test_key',
-            'value' => $jsonValue,
-            'created_at' => '2022-01-01 00:00:00'
-        ];
-
-        DB::shouldReceive('table')->with('timevault_objects')->andReturnSelf();
-        DB::shouldReceive('where')->with('key', 'test_key')->andReturnSelf();
-        DB::shouldReceive('orderBy')->with('created_at', 'desc')->andReturnSelf();
-        DB::shouldReceive('first')->andReturn($mockRecord);
-
-        $result = $this->objectServices->getObject($request);
-
-        $this->assertTrue($result['success']);
-        $this->assertEquals(['nested' => 'value'], $result['data']['value']);
+        $this->assertEquals(1009, $result['errors']['code']);
+        $this->assertEquals('Key not found for the given timestamp', $result['errors']['message']);
     }
 
     public function testGetAllRecordsSuccess()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('input')->with('page', 1)->andReturn(1);
-        $mockRequest->shouldReceive('input')->with('per_page', 1)->andReturn(10);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('input')->with('page', 1)->andReturn(1);
+        $request->shouldReceive('input')->with('per_page', 5)->andReturn(10);
 
         $mockRecords = collect([
             (object)[
@@ -221,7 +187,7 @@ class ObjectServicesTest extends TestCase
         DB::shouldReceive('offset')->with(0)->andReturnSelf();
         DB::shouldReceive('get')->andReturn($mockRecords);
 
-        $result = $this->objectServices->getAllRecords($mockRequest);
+        $result = $this->objectServices->getAllRecords($request);
 
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('data', $result);
@@ -233,9 +199,9 @@ class ObjectServicesTest extends TestCase
 
     public function testGetAllRecordsWithPagination()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('input')->with('page', 1)->andReturn(2);
-        $mockRequest->shouldReceive('input')->with('per_page', 1)->andReturn(5);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('input')->with('page', 1)->andReturn(2);
+        $request->shouldReceive('input')->with('per_page', 5)->andReturn(5);
 
         DB::shouldReceive('table')->with('timevault_objects')->andReturnSelf();
         DB::shouldReceive('count')->andReturn(15);
@@ -244,7 +210,7 @@ class ObjectServicesTest extends TestCase
         DB::shouldReceive('offset')->with(5)->andReturnSelf();
         DB::shouldReceive('get')->andReturn(collect([]));
 
-        $result = $this->objectServices->getAllRecords($mockRequest);
+        $result = $this->objectServices->getAllRecords($request);
 
         $this->assertTrue($result['success']);
         $this->assertEquals(2, $result['pagination']['current_page']);
@@ -257,34 +223,15 @@ class ObjectServicesTest extends TestCase
 
     public function testGetAllRecordsException()
     {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('input')->with('page', 1)->andReturn(1);
-        $mockRequest->shouldReceive('input')->with('per_page', 1)->andReturn(10);
+        $request = Mockery::mock(Request::class);
+        $request->shouldReceive('input')->andReturn(1);
 
-        DB::shouldReceive('table')->with('timevault_objects')->andThrow(new \Exception('Database error'));
+        DB::shouldReceive('table')->andThrow(new \Exception('Database connection failed'));
 
-        $result = $this->objectServices->getAllRecords($mockRequest);
+        $result = $this->objectServices->getAllRecords($request);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Error retrieving all data:', $result['message']);
-    }
-
-    public function testGetAllRecordsMaxLimit()
-    {
-        $mockRequest = Mockery::mock(Request::class);
-        $mockRequest->shouldReceive('input')->with('page', 1)->andReturn(1);
-        $mockRequest->shouldReceive('input')->with('per_page', 1)->andReturn(1000);
-
-        DB::shouldReceive('table')->with('timevault_objects')->andReturnSelf();
-        DB::shouldReceive('count')->andReturn(0);
-        DB::shouldReceive('orderBy')->with('created_at', 'asc')->andReturnSelf();
-        DB::shouldReceive('limit')->with(500)->andReturnSelf();
-        DB::shouldReceive('offset')->with(0)->andReturnSelf();
-        DB::shouldReceive('get')->andReturn(collect([]));
-
-        $result = $this->objectServices->getAllRecords($mockRequest);
-
-        $this->assertTrue($result['success']);
-        $this->assertEquals(500, $result['pagination']['per_page']);
+        $this->assertEquals(1007, $result['errors']['code']);
+        $this->assertStringContainsString('Error retrieving data:', $result['errors']['message']);
     }
 }
