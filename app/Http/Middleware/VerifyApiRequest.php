@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use App\Models\ConfigModel;
 
 class VerifyApiRequest
 {
@@ -15,8 +16,11 @@ class VerifyApiRequest
         $appIdHeader = $request->header('lta-app-id');
         $apiKeyHeader = $request->header('x-api-key');
 
-        $expectedAppId = env('LTA_APP_ID');
-        $expectedApiKey = env('LTA_API_KEY');
+        // get app id and api key from DB config
+        $config = ConfigModel::getValue('api_security', 'app_id_api_key');
+        $env = env('APP_ENV', 'local');
+        $expectedAppId = $config[$env]['app_id'] ?? null;
+        $expectedApiKey = $config[$env]['api_key'] ?? null;
 
         if ($appIdHeader !== $expectedAppId || $apiKeyHeader !== $expectedApiKey) {
             return response()->json([
