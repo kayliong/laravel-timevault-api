@@ -28,7 +28,8 @@ class ObjectController extends BaseController
 
         // create an object via service layer
         $result = (new ObjectServices())->createObject($request);
-        return response()->json($result, 201);
+        $statusCode = $result['success']===true ? 201 : 400;
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -50,14 +51,16 @@ class ObjectController extends BaseController
 
         // get object via service layer
         $result = (new ObjectServices())->getObject($request);
-        return response()->json($result, 201);
+        $statusCode = $result['success']===true ? 201 : 400;
+        return response()->json($result, $statusCode);
     }
 
     public function getAllRecords(Request $request)
     {
         // get all records via service layer
         $result = (new ObjectServices())->getAllRecords($request);
-        return response()->json($result, 200);
+        $statusCode = $result['success']===true ? 201 : 400;
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -109,8 +112,8 @@ class ObjectController extends BaseController
     private function handleErrorResponse($code, $message, $errors = [])
     {
         if (isset($code) && isset($message)) {
-            $errors[] = ["code" => $code, "message" => $message];
+            $errors[] = ['code' => $code, 'message' => $message];
         }
-        return ["errors" => $errors];
+        return response()->json(['success'=>false, 'errors' => $errors], 400);
     }
 }
