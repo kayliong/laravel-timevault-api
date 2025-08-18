@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Services\Objects\ObjectServices;
 use App\Models\Objects\ObjectModel;
 use Carbon\Carbon;
-use Mockery;
 
 class ObjectServicesTest extends TestCase
 {
@@ -20,7 +19,7 @@ class ObjectServicesTest extends TestCase
 
     public function testCreateObjectSuccess()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')->andReturn(['key1' => 'value1']);
 
         $mockModel = new \stdClass();
@@ -30,7 +29,7 @@ class ObjectServicesTest extends TestCase
         $mockModel->created_at = Carbon::now();
         $mockModel->updated_at = Carbon::now();
 
-        Mockery::mock('alias:' . ObjectModel::class)
+        \Mockery::mock('alias:' . ObjectModel::class)
             ->shouldReceive('create')
             ->andReturn($mockModel);
         
@@ -46,7 +45,7 @@ class ObjectServicesTest extends TestCase
 
     public function testCreateObjectEmptyData()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')->andReturn([]);
 
         $result = $this->objectServices->createObject($request);
@@ -58,10 +57,10 @@ class ObjectServicesTest extends TestCase
 
     public function testCreateObjectException()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('all')->andReturn(['key1' => 'value1']);
 
-        Mockery::mock('alias:' . ObjectModel::class)
+        \Mockery::mock('alias:' . ObjectModel::class)
             ->shouldReceive('create')
             ->andThrow(new \Exception('Database error'));
         
@@ -166,7 +165,7 @@ class ObjectServicesTest extends TestCase
 
     public function testGetAllRecordsSuccess()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('input')->with('page', 1)->andReturn(1);
         $request->shouldReceive('input')->with('per_page', 5)->andReturn(10);
 
@@ -199,7 +198,7 @@ class ObjectServicesTest extends TestCase
 
     public function testGetAllRecordsWithPagination()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('input')->with('page', 1)->andReturn(2);
         $request->shouldReceive('input')->with('per_page', 5)->andReturn(5);
 
@@ -223,7 +222,7 @@ class ObjectServicesTest extends TestCase
 
     public function testGetAllRecordsException()
     {
-        $request = Mockery::mock(Request::class);
+        $request = \Mockery::mock(Request::class);
         $request->shouldReceive('input')->andReturn(1);
 
         DB::shouldReceive('table')->andThrow(new \Exception('Database connection failed'));
