@@ -8,6 +8,14 @@ use App\Models\Objects\ObjectModel; // use Object model
 
 class ObjectServices
 {
+    private $noDataError = [
+        'success' => false,
+        'errors' => [
+            'code' => 1005,
+            'message' => 'No data provided'
+        ],
+    ];
+
     /**
      * Create a new object.
      *
@@ -22,10 +30,7 @@ class ObjectServices
 
             // additional validation for empty data, just in case Validator missed it
             if (empty($data)) {
-                return [
-                    'success' => false,
-                    'message' => 'No data provided'
-                ];
+                return $this->noDataError;
             }
 
             $stored = [];
@@ -48,6 +53,7 @@ class ObjectServices
                     'created_at_timestamp' => $timeVaultObject->updated_at->timestamp
                 ];
             }
+
             DB::commit();
             return [
                 'success' => true,
@@ -59,7 +65,10 @@ class ObjectServices
             DB::rollback();
             return [
                 'success' => false,
-                'message' => 'Error storing key-value pair: ' . $e->getMessage()
+                'errors' => [
+                    'code' => 1007,
+                    'message' => 'Error storing data: ' . $e->getMessage()
+                ],
             ];
         }
     }
@@ -92,10 +101,7 @@ class ObjectServices
             $key = $request["key"] ?? null;
 
             if (empty($key)) {
-                return [
-                    'success' => false,
-                    'message' => 'Key parameter is required'
-                ];
+                return $this->noDataError;
             }
 
             // get record by key, order by created_at desc
@@ -107,7 +113,10 @@ class ObjectServices
             if (!$record) {
                 return [
                     'success' => false,
-                    'message' => 'Key not found'
+                    'errors' => [
+                        'code' => 1006,
+                        'message' => 'Key not found'
+                    ],
                 ];
             }
 
@@ -129,7 +138,10 @@ class ObjectServices
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error retrieving data: ' . $e->getMessage()
+                'errors' => [
+                    'code' => 1007,
+                    'message' => 'Error retrieving data: ' . $e->getMessage()
+                ],
             ];
         }
     }
@@ -148,10 +160,7 @@ class ObjectServices
             $timestamp = $request["timestamp"] ?? null;
 
             if (empty($key) || empty($timestamp)) {
-                return [
-                    'success' => false,
-                    'message' => 'Key and timestamp parameters are required'
-                ];
+                return $this->noDataError;
             }
 
             // convert Unix timestamp to datetime string used for querying
@@ -166,7 +175,10 @@ class ObjectServices
             if (!$record) {
                 return [
                     'success' => false,
-                    'message' => 'Key not found for the given timestamp'
+                    'errors' => [
+                        'code' => 1009,
+                        'message' => 'Key not found for the given timestamp'
+                    ],
                 ];
             }
 
@@ -188,7 +200,10 @@ class ObjectServices
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error retrieving data: ' . $e->getMessage()
+                'errors' => [
+                    'code' => 1007,
+                    'message' => 'Error retrieving data: ' . $e->getMessage()
+                ],
             ];
         }
     }
@@ -205,7 +220,7 @@ class ObjectServices
         try {
             // get pagination parameters
             $page = max(1, (int) $request->input('page', 1));
-            $perPage = max(1, min($maxRecords, (int) $request->input('per_page', 1))); // Default 10, max 100
+            $perPage = max(1, min($maxRecords, (int) $request->input('per_page', 5))); // Default 10, max 100
 
             // calculate offset
             $offset = ($page - 1) * $perPage;
@@ -242,7 +257,8 @@ class ObjectServices
                     'key' => $record->key,
                     'value' => $value,
                     'created_at' => $createdAt->format('Y-m-d H:i:s'),
-                    'created_at_timestamp' => $createdAt->timestamp
+                    'created_at_timestamp' => $createdAt->timestamp,
+                    'updated_at' => $updatedAt->format('Y-m-d H:i:s')
                 ];
             }
 
@@ -266,7 +282,10 @@ class ObjectServices
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Error retrieving all data: ' . $e->getMessage()
+                'errors' => [
+                    'code' => 1007,
+                    'message' => 'Error retrieving data: ' . $e->getMessage()
+                ],
             ];
         }
     }
