@@ -79,7 +79,7 @@ $app->middleware([
 $app->routeMiddleware([
     // 'auth' => App\Http\Middleware\Authenticate::class,
     'verifyApiRequest' => \App\Http\Middleware\VerifyApiRequest::class,
-    'sanitizeResponse' => \App\Http\Middleware\SanitizeResponse::class,
+    // 'sanitizeResponse' => \App\Http\Middleware\SanitizeResponse::class,
 ]);
 
 /*

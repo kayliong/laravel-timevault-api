@@ -21,7 +21,10 @@ $router->get('/ping', function () {
     return "Hello World!";
 });
 
-$router->group(['prefix'=>'api/v1/', 'middleware' => ['verifyApiRequest','sanitizeResponse']], function () use($router) {
+$router->group(['prefix'=>'api/v1/', 'middleware' => ['verifyApiRequest']], function () use($router) {
+    $router->post('/', function () {
+        return "Hello Postman!";
+    });
     $router->post('/object', 'Objects\ObjectController@createObject');
     $router->get('/object/get_all_records', 'Objects\ObjectController@getAllRecords');
     $router->get('/object/{key}', 'Objects\ObjectController@getObjectByKey');
