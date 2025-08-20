@@ -11,7 +11,7 @@ class SanitizeResponse
     /**
      * Headers to remove from response.
      */
-    protected array $headersToRemove = [
+    protected $headersToRemove = [
         'Server',
         'X-Powered-By',
     ];
