@@ -79,7 +79,7 @@ $app->middleware([
 $app->routeMiddleware([
     // 'auth' => App\Http\Middleware\Authenticate::class,
     'verifyApiRequest' => \App\Http\Middleware\VerifyApiRequest::class,
-    // 'sanitizeResponse' => \App\Http\Middleware\SanitizeResponse::class,
+    'sanitizeResponse' => \App\Http\Middleware\SanitizeResponse::class,
 ]);
 
 /*
@@ -96,6 +96,7 @@ $app->routeMiddleware([
 // $app->register(App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\RepositoryServiceProvider::class); // object repository
 
 /*
 |--------------------------------------------------------------------------
