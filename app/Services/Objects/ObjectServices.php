@@ -5,6 +5,7 @@ namespace App\Services\Objects;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Objects\ObjectModel; // use Object model
+use App\Interfaces\Objects\ObjectRepositoryInterface;
 
 class ObjectServices
 {
@@ -15,6 +16,13 @@ class ObjectServices
             'message' => 'No data provided'
         ],
     ];
+
+    private $objectRepository;
+
+    public function __construct()
+    {
+        $this->objectRepository = app()->make(ObjectRepositoryInterface::class);
+    }
 
     /**
      * Create a new object.
@@ -105,10 +113,11 @@ class ObjectServices
             }
 
             // get record by key, order by created_at desc
-            $record = DB::table('timevault_objects')
-                ->where('key', $key)
-                ->orderBy('created_at', 'desc')
-                ->first();
+            // $record = DB::table('timevault_objects')
+            //     ->where('key', $key)
+            //     ->orderBy('created_at', 'desc')
+            //     ->first();
+            $record = $this->objectRepository->findLatestByKey($key);
 
             if (!$record) {
                 return [
@@ -168,7 +177,7 @@ class ObjectServices
 
             $record = DB::table('timevault_objects')
                 ->where('key', $key)
-                ->where('created_at', '=', $datetime)
+                ->where('created_at', '<=', $datetime)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
